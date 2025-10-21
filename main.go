@@ -43,6 +43,7 @@ func main() {
 	}
 
 	apiCfg := config.NewApiConfig(queries, &platform)
+	auth := handler.NewAuth(apiCfg)
 	health := handler.NewHealth()
 	admin := handler.NewAdmin(apiCfg)
 	user := handler.NewUser(apiCfg)
@@ -54,8 +55,16 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", admin.Reset)
 
 	mux.HandleFunc("GET /api/healthz", health.ServeHTTP)
-	mux.HandleFunc("POST /api/validate_chirp", chirp.ValidateChirp)
+
+	//auth
+	mux.HandleFunc("POST /api/login", auth.Login)
+	// users
 	mux.HandleFunc("POST /api/users", user.Create)
+
+	// chirps
+	mux.HandleFunc("POST /api/chirps", chirp.Create)
+	mux.HandleFunc("GET /api/chirps", chirp.GetAll)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", chirp.GetChirpById)
 
 	err = server.ListenAndServe()
 	if err != nil {

@@ -3,6 +3,7 @@ package handler
 import (
 	"chirpy/core/config"
 	"chirpy/dto"
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"encoding/json"
 	"fmt"
@@ -35,11 +36,20 @@ func (u *User) Create(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write(errorResponse)
 	}
 
+	hash, err := auth.HashPassword(createUser.Password)
+	if err != nil {
+		fmt.Printf("error hashing password: %s\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err = w.Write([]byte(err.Error()))
+		return
+	}
+
 	user, err := u.ApiCfg.Db.CreateUser(r.Context(), database.CreateUserParams{
-		ID:        uuid.New(),
-		Email:     createUser.Email,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:             uuid.New(),
+		Email:          createUser.Email,
+		HashedPassword: hash,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	})
 	if err != nil {
 		fmt.Printf("error creating user: %s\n", err)
@@ -52,7 +62,12 @@ func (u *User) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userDto, err := json.Marshal(user)
+	userDto, err := json.Marshal(dto.UserResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
 	if err != nil {
 		fmt.Printf("error creating user: %s\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
