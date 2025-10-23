@@ -22,6 +22,7 @@ func main() {
 
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	secret := os.Getenv("SECRET")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -42,7 +43,7 @@ func main() {
 		Handler: mux,
 	}
 
-	apiCfg := config.NewApiConfig(queries, &platform)
+	apiCfg := config.NewApiConfig(queries, &platform, &secret)
 	auth := handler.NewAuth(apiCfg)
 	health := handler.NewHealth()
 	admin := handler.NewAdmin(apiCfg)
@@ -58,6 +59,9 @@ func main() {
 
 	//auth
 	mux.HandleFunc("POST /api/login", auth.Login)
+	mux.HandleFunc("POST /api/refresh", auth.Refresh)
+	mux.HandleFunc("POST /api/revoke", auth.Revoke)
+
 	// users
 	mux.HandleFunc("POST /api/users", user.Create)
 

@@ -4,8 +4,11 @@ import (
 	"chirpy/core/config"
 	"chirpy/dto"
 	"chirpy/internal/auth"
+	"chirpy/internal/database"
+	"database/sql"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 func NewAuth(apiCfg *config.ApiConfig) *Auth {
@@ -34,8 +37,12 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := a.ApiConfig.Db.GetUserByEmail(r.Context(), loginRequest.Email)
 	if err != nil {
+		errDto := dto.Response{
+			Error: err.Error(),
+		}
+		errorResponse, _ := json.Marshal(errDto)
 		w.WriteHeader(http.StatusUnauthorized)
-		_, err = w.Write([]byte("Incorrect email or password"))
+		_, err = w.Write(errorResponse)
 		return
 	}
 
@@ -54,11 +61,51 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hash {
+		jwt, err := auth.MakeJWT(user.ID, a.ApiConfig.Secret, time.Duration(60*60)*time.Second)
+		if err != nil {
+			errDto := dto.Response{
+				Error: err.Error(),
+			}
+			errorResponse, _ := json.Marshal(errDto)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write(errorResponse)
+			return
+		}
+		refreshToken, err := auth.MakeRefreshToken()
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		_, err = a.ApiConfig.Db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+			Token:  refreshToken,
+			UserID: user.ID,
+			ExpiresAt: sql.NullTime{
+				Time:  time.Now().AddDate(0, 0, 60),
+				Valid: true,
+			},
+			RevokedAt: sql.NullTime{},
+			CreatedAt: sql.NullTime{
+				Time:  time.Now(),
+				Valid: true,
+			},
+			UpdatedAt: sql.NullTime{
+				Time:  time.Now(),
+				Valid: true,
+			},
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		userResponse := dto.UserResponse{
-			ID:        user.ID,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
+			ID:           user.ID,
+			Email:        user.Email,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			Token:        jwt,
+			RefreshToken: refreshToken,
 		}
 		responseBytes, err := json.Marshal(userResponse)
 		if err != nil {
@@ -86,4 +133,57 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write(resp)
 		return
 	}
+}
+
+func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	refresh, err := a.ApiConfig.Db.GetTokenForRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if refreshToken != refresh.Token {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	jwt, err := auth.MakeJWT(refresh.UserID, a.ApiConfig.Secret, time.Duration(60*60)*time.Second)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	tokenResponse := struct {
+		Token string `json:"token"`
+	}{Token: jwt}
+	tokenRespBytes, err := json.Marshal(tokenResponse)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	_, err = w.Write(tokenRespBytes)
+}
+
+func (a *Auth) Revoke(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = a.ApiConfig.Db.RevokeRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

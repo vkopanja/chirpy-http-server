@@ -3,6 +3,7 @@ package handler
 import (
 	"chirpy/core/config"
 	"chirpy/dto"
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"encoding/json"
 	"fmt"
@@ -24,7 +25,19 @@ type Chirp struct {
 }
 
 func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
-	chirp, err := validateChirp(r)
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, c.ApiCfg.Secret)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	chirp, err := validateChirp(userID, r)
 	if err != nil {
 		fmt.Printf("error validating chirp: %s\n", err)
 		errDto := dto.Response{
@@ -36,7 +49,7 @@ func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
 	} else {
 		createChirp, err := c.ApiCfg.Db.CreateChirp(r.Context(), database.CreateChirpParams{
 			ID:        uuid.New(),
-			UserID:    chirp.UserID,
+			UserID:    userID,
 			Body:      chirp.Body,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -114,7 +127,7 @@ func (c *Chirp) GetChirpById(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(responseBytes)
 }
 
-func validateChirp(r *http.Request) (*dto.ChirpRequest, error) {
+func validateChirp(userID uuid.UUID, r *http.Request) (*dto.ChirpRequest, error) {
 	invalidWords := []string{"kerfuffle", "sharbert", "fornax"}
 	replacement := "****"
 
@@ -129,7 +142,7 @@ func validateChirp(r *http.Request) (*dto.ChirpRequest, error) {
 		if len(chirp.Body) > 140 {
 			return false, fmt.Errorf("chirp is too long")
 		}
-		if chirp.UserID == uuid.Nil {
+		if userID == uuid.Nil {
 			return false, fmt.Errorf("user id cannot be empty")
 		}
 		return true, nil

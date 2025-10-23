@@ -76,3 +76,25 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	)
 	return i, err
 }
+
+const getUserByRefreshToken = `-- name: GetUserByRefreshToken :one
+SELECT u.id, u.email, u.created_at, u.updated_at, u.hashed_password
+FROM users u
+         JOIN refresh_tokens rt ON rt.user_id = u.id
+WHERE rt.user_id = $1
+  AND rt.revoked_at IS NULL
+  AND rt.expires_at > NOW()
+`
+
+func (q *Queries) GetUserByRefreshToken(ctx context.Context, userID uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByRefreshToken, userID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HashedPassword,
+	)
+	return i, err
+}

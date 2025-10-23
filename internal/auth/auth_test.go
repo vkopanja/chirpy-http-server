@@ -1,6 +1,11 @@
 package auth
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 func TestHashPassword(t *testing.T) {
 	_, err := HashPassword("test123")
@@ -21,5 +26,33 @@ func TestCheckPasswordHash(t *testing.T) {
 	}
 	if !check {
 		t.Fatalf("passwords do not match")
+	}
+}
+
+func TestMakeJWT(t *testing.T) {
+	_, err := MakeJWT(uuid.New(), "test", 10)
+	if err != nil {
+		t.Fatalf("failed creating jwt: %s", err)
+	}
+}
+
+func TestValidateJWT(t *testing.T) {
+	userID := uuid.New()
+	tkn, err := MakeJWT(userID, "test", 10*time.Minute)
+	if err != nil {
+		t.Fatalf("failed creating jwt: %s", err)
+	}
+
+	tokenUserID, err := ValidateJWT(tkn, "test")
+	if err != nil {
+		t.Fatalf("failed validating jwt: %s", err)
+	}
+
+	if tokenUserID == uuid.Nil {
+		t.Fatalf("failed validating jwt: %s", err)
+	}
+
+	if tokenUserID != userID {
+		t.Fatalf("failed validating jwt, wrong subject extracted: %s", err)
 	}
 }
