@@ -22,3 +22,16 @@ FROM users u
 WHERE rt.user_id = $1
   AND rt.revoked_at IS NULL
   AND rt.expires_at > NOW();
+
+-- name: GetUserByID :one
+SELECT *
+FROM users
+WHERE id = $1;
+
+-- name: UpdateUserByID :one
+UPDATE users
+SET email           = $1,
+    hashed_password = $2,
+    updated_at      = NOW()
+WHERE id = $3
+RETURNING *;

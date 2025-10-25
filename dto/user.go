@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateUser struct {
+type CreateOrUpdateUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }

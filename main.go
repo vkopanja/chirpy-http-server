@@ -64,6 +64,7 @@ func main() {
 
 	// users
 	mux.HandleFunc("POST /api/users", user.Create)
+	mux.HandleFunc("PUT /api/users", user.Update)
 
 	// chirps
 	mux.HandleFunc("POST /api/chirps", chirp.Create)
