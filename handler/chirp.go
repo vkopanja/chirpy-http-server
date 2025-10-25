@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,16 +80,46 @@ func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *Chirp) GetAll(w http.ResponseWriter, r *http.Request) {
-	chirps, err := c.apiCfg.Db.GetChirps(r.Context())
-	if err != nil {
-		errDto := dto.Response{
-			Error: err.Error(),
+func (c *Chirp) GetAllWithFilter(w http.ResponseWriter, r *http.Request) {
+	authorId := r.URL.Query().Get("author_id")
+	sortOrd := r.URL.Query().Get("sort")
+
+	var chirps []database.Chirp
+	var err error
+
+	if authorId != "" {
+		chirps, err = c.apiCfg.Db.GetChirpsByUserId(r.Context(), uuid.MustParse(authorId))
+		if err != nil {
+			errDto := dto.Response{
+				Error: err.Error(),
+			}
+			errorResponse, _ := json.Marshal(errDto)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write(errorResponse)
+			return
 		}
-		errorResponse, _ := json.Marshal(errDto)
-		w.WriteHeader(http.StatusInternalServerError)
-		_, err = w.Write(errorResponse)
-		return
+	} else {
+		chirps, err = c.apiCfg.Db.GetChirps(r.Context())
+		if err != nil {
+			errDto := dto.Response{
+				Error: err.Error(),
+			}
+			errorResponse, _ := json.Marshal(errDto)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write(errorResponse)
+			return
+		}
+	}
+
+	switch sortOrd {
+	case "asc":
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		})
+	case "desc":
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
 	}
 
 	responseBytes, err := json.Marshal(chirps)

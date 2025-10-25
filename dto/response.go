@@ -5,3 +5,7 @@ type Response struct {
 	Valid       bool   `json:"valid,omitempty"`
 	CleanedBody string `json:"cleaned_body,omitempty"`
 }
+
+type Token struct {
+	Token string `json:"token"`
+}

@@ -3,6 +3,7 @@ package handler
 import (
 	"chirpy/core/config"
 	"chirpy/dto"
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"encoding/json"
 	"net/http"
@@ -19,9 +20,20 @@ type Webhook struct {
 }
 
 func (wh *Webhook) CatchWebhook(w http.ResponseWriter, r *http.Request) {
+	key, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if key != wh.apiCfg.PolkaKey {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	var webhook dto.UserWebhook
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&webhook)
+	err = decoder.Decode(&webhook)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

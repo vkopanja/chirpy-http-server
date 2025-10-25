@@ -21,6 +21,18 @@ type Auth struct {
 	apiConfig *config.ApiConfig
 }
 
+// Login
+// @Summary Login
+// @Description Login the user to application and return JWT token
+// @Tags Auth handler
+// @Accept application/json
+// @Produce application/json
+// @Param loginRequest body dto.LoginRequest true "Login request"
+// @Success 200 {object} dto.UserResponse "User response"
+// @Failure 400 {object} dto.Response "Bad request"
+// @Failure 401 {object} dto.Response "Unauthorized"
+// @Failure 500 {object} dto.Response "Internal server error"
+// @Router /api/login [post]
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	var loginRequest dto.LoginRequest
 
@@ -136,6 +148,17 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Refresh
+// @Summary Refresh token
+// @Description Refresh the token using our refresh token
+// @Tags Auth handler
+// @Accept application/json
+// @Produce application/json
+// @Success 200 {object} dto.Token "Token response"
+// @Failure 400 {object} dto.Response "Bad request"
+// @Failure 401 {object} nil "Unauthorized"
+// @Failure 500 {object} dto.Response "Internal server error"
+// @Router /api/refresh [post]
 func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
@@ -162,9 +185,7 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	tokenResponse := struct {
-		Token string `json:"token"`
-	}{Token: jwt}
+	tokenResponse := dto.Token{Token: jwt}
 	tokenRespBytes, err := json.Marshal(tokenResponse)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -173,6 +194,16 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(tokenRespBytes)
 }
 
+// Revoke
+// @Summary Revoke token
+// @Description Revoke the refresh token for the passed in Bearer token
+// @Tags Auth handler
+// @Security BearerAuth
+// @Accept application/json
+// @Produce application/json
+// @Success 204 "No content"
+// @Failure 500 {object} nil "Internal server error"
+// @Router /api/revoke [post]
 func (a *Auth) Revoke(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {

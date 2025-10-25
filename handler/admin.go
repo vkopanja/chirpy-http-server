@@ -18,6 +18,13 @@ type Admin struct {
 	apiCfg *config.ApiConfig
 }
 
+// Metrics
+// @Summary Show metrics
+// @Description Show metrics of total fileserver hits
+// @Tags Admin handler
+// @Produce text/html
+// @Success 200 {string} string "HTML response"
+// @Router /admin/metrics [get]
 func (admin *Admin) Metrics(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
@@ -34,6 +41,14 @@ func (admin *Admin) Metrics(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// Reset
+// @Summary Reset database
+// @Description Reset database if on dev profile and clear all users, also reset fileserver hits
+// @Tags Admin handler
+// @Produce json
+// @Success 204 {object} nil "No Content"
+// @Failure 500 {object} dto.Response
+// @Router /admin/reset [post]
 func (admin *Admin) Reset(w http.ResponseWriter, r *http.Request) {
 	if admin.apiCfg.Platform == "dev" {
 		err := admin.apiCfg.Db.ClearUsers(r.Context())

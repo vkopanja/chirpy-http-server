@@ -1,0 +1,170 @@
+definitions:
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.Response:
+    properties:
+      cleaned_body:
+        type: string
+      error:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  dto.Token:
+    properties:
+      token:
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_chirpy_red:
+        type: boolean
+      refresh_token:
+        type: string
+      token:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is Chirpy API created for boot.dev HTTP servers course.
+  title: Chirpy API
+  version: "1.0"
+paths:
+  /admin/metrics:
+    get:
+      description: Show metrics of total fileserver hits
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML response
+          schema:
+            type: string
+      summary: Show metrics
+      tags:
+      - Admin handler
+  /admin/reset:
+    post:
+      description: Reset database if on dev profile and clear all users, also reset
+        fileserver hits
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Reset database
+      tags:
+      - Admin handler
+  /api/healthz:
+    get:
+      description: Health check
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health check
+      tags:
+      - Health handler
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Login the user to application and return JWT token
+      parameters:
+      - description: Login request
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User response
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Login
+      tags:
+      - Auth handler
+  /api/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh the token using our refresh token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token response
+          schema:
+            $ref: '#/definitions/dto.Token'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: Refresh token
+      tags:
+      - Auth handler
+  /api/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Revoke the refresh token for the passed in Bearer token
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No content
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      summary: Revoke token
+      tags:
+      - Auth handler
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
