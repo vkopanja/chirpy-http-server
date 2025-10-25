@@ -10,12 +10,12 @@ import (
 
 func NewAdmin(apiCfg *config.ApiConfig) *Admin {
 	return &Admin{
-		ApiCfg: apiCfg,
+		apiCfg: apiCfg,
 	}
 }
 
 type Admin struct {
-	ApiCfg *config.ApiConfig
+	apiCfg *config.ApiConfig
 }
 
 func (admin *Admin) Metrics(w http.ResponseWriter, _ *http.Request) {
@@ -28,15 +28,15 @@ func (admin *Admin) Metrics(w http.ResponseWriter, _ *http.Request) {
 			<p>Chirpy has been visited %d times!</p>
 		  </body>
 		</html>
-		`, admin.ApiCfg.FileserverHits.Load())))
+		`, admin.apiCfg.FileserverHits.Load())))
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (admin *Admin) Reset(w http.ResponseWriter, r *http.Request) {
-	if admin.ApiCfg.Platform == "dev" {
-		err := admin.ApiCfg.Db.ClearUsers(r.Context())
+	if admin.apiCfg.Platform == "dev" {
+		err := admin.apiCfg.Db.ClearUsers(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			errDto := dto.Response{
@@ -48,7 +48,7 @@ func (admin *Admin) Reset(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		admin.ApiCfg.FileserverHits.Store(0)
+		admin.apiCfg.FileserverHits.Store(0)
 	} else {
 		w.WriteHeader(http.StatusForbidden)
 	}

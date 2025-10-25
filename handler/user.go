@@ -15,12 +15,12 @@ import (
 
 func NewUser(apiCfg *config.ApiConfig) *User {
 	return &User{
-		ApiCfg: apiCfg,
+		apiCfg: apiCfg,
 	}
 }
 
 type User struct {
-	ApiCfg *config.ApiConfig
+	apiCfg *config.ApiConfig
 }
 
 func (u *User) Create(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func (u *User) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := u.ApiCfg.Db.CreateUser(r.Context(), database.CreateUserParams{
+	user, err := u.apiCfg.Db.CreateUser(r.Context(), database.CreateUserParams{
 		ID:             uuid.New(),
 		Email:          createUser.Email,
 		HashedPassword: hash,
@@ -87,7 +87,7 @@ func (u *User) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := auth.ValidateJWT(token, u.ApiCfg.Secret)
+	userID, err := auth.ValidateJWT(token, u.apiCfg.Secret)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -106,7 +106,7 @@ func (u *User) Update(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write(errorResponse)
 	}
 
-	user, err := u.ApiCfg.Db.GetUserByID(r.Context(), userID)
+	user, err := u.apiCfg.Db.GetUserByID(r.Context(), userID)
 	if err != nil {
 		fmt.Printf("error getting user: %s\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -125,7 +125,7 @@ func (u *User) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := u.ApiCfg.Db.UpdateUserByID(r.Context(), database.UpdateUserByIDParams{
+	updatedUser, err := u.apiCfg.Db.UpdateUserByID(r.Context(), database.UpdateUserByIDParams{
 		Email:          updateUser.Email,
 		HashedPassword: hashedPassword,
 		ID:             user.ID,

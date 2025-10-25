@@ -13,12 +13,12 @@ import (
 
 func NewAuth(apiCfg *config.ApiConfig) *Auth {
 	return &Auth{
-		ApiConfig: apiCfg,
+		apiConfig: apiCfg,
 	}
 }
 
 type Auth struct {
-	ApiConfig *config.ApiConfig
+	apiConfig *config.ApiConfig
 }
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +35,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write(errorResponse)
 	}
 
-	user, err := a.ApiConfig.Db.GetUserByEmail(r.Context(), loginRequest.Email)
+	user, err := a.apiConfig.Db.GetUserByEmail(r.Context(), loginRequest.Email)
 	if err != nil {
 		errDto := dto.Response{
 			Error: err.Error(),
@@ -61,7 +61,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hash {
-		jwt, err := auth.MakeJWT(user.ID, a.ApiConfig.Secret, time.Duration(60*60)*time.Second)
+		jwt, err := auth.MakeJWT(user.ID, a.apiConfig.Secret, time.Duration(60*60)*time.Second)
 		if err != nil {
 			errDto := dto.Response{
 				Error: err.Error(),
@@ -77,7 +77,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = a.ApiConfig.Db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		_, err = a.apiConfig.Db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
 			Token:  refreshToken,
 			UserID: user.ID,
 			ExpiresAt: sql.NullTime{
@@ -104,6 +104,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 			Email:        user.Email,
 			CreatedAt:    user.CreatedAt,
 			UpdatedAt:    user.UpdatedAt,
+			IsChirpyRed:  user.IsChirpyRed,
 			Token:        jwt,
 			RefreshToken: refreshToken,
 		}
@@ -142,7 +143,7 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refresh, err := a.ApiConfig.Db.GetTokenForRefreshToken(r.Context(), refreshToken)
+	refresh, err := a.apiConfig.Db.GetTokenForRefreshToken(r.Context(), refreshToken)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -153,7 +154,7 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := auth.MakeJWT(refresh.UserID, a.ApiConfig.Secret, time.Duration(60*60)*time.Second)
+	jwt, err := auth.MakeJWT(refresh.UserID, a.apiConfig.Secret, time.Duration(60*60)*time.Second)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -179,7 +180,7 @@ func (a *Auth) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = a.ApiConfig.Db.RevokeRefreshToken(r.Context(), refreshToken)
+	err = a.apiConfig.Db.RevokeRefreshToken(r.Context(), refreshToken)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

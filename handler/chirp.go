@@ -16,12 +16,12 @@ import (
 
 func NewChirp(apiCfg *config.ApiConfig) *Chirp {
 	return &Chirp{
-		ApiCfg: apiCfg,
+		apiCfg: apiCfg,
 	}
 }
 
 type Chirp struct {
-	ApiCfg *config.ApiConfig
+	apiCfg *config.ApiConfig
 }
 
 func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +31,7 @@ func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := auth.ValidateJWT(token, c.ApiCfg.Secret)
+	userID, err := auth.ValidateJWT(token, c.apiCfg.Secret)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -47,7 +47,7 @@ func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err = w.Write(errorResponse)
 	} else {
-		createChirp, err := c.ApiCfg.Db.CreateChirp(r.Context(), database.CreateChirpParams{
+		createChirp, err := c.apiCfg.Db.CreateChirp(r.Context(), database.CreateChirpParams{
 			ID:        uuid.New(),
 			UserID:    userID,
 			Body:      chirp.Body,
@@ -80,7 +80,7 @@ func (c *Chirp) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Chirp) GetAll(w http.ResponseWriter, r *http.Request) {
-	chirps, err := c.ApiCfg.Db.GetChirps(r.Context())
+	chirps, err := c.apiCfg.Db.GetChirps(r.Context())
 	if err != nil {
 		errDto := dto.Response{
 			Error: err.Error(),
@@ -112,7 +112,7 @@ func (c *Chirp) GetChirpById(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	chirp, err := c.ApiCfg.Db.GetChirpById(r.Context(), uuid.MustParse(chirpId))
+	chirp, err := c.apiCfg.Db.GetChirpById(r.Context(), uuid.MustParse(chirpId))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -134,7 +134,7 @@ func (c *Chirp) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := auth.ValidateJWT(token, c.ApiCfg.Secret)
+	userID, err := auth.ValidateJWT(token, c.apiCfg.Secret)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -151,7 +151,7 @@ func (c *Chirp) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirp, err := c.ApiCfg.Db.GetChirpById(r.Context(), uuid.MustParse(chirpId))
+	chirp, err := c.apiCfg.Db.GetChirpById(r.Context(), uuid.MustParse(chirpId))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -162,7 +162,7 @@ func (c *Chirp) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.ApiCfg.Db.DeleteChirp(r.Context(), chirp.ID)
+	err = c.apiCfg.Db.DeleteChirp(r.Context(), chirp.ID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

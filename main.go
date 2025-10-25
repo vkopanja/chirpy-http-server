@@ -49,6 +49,7 @@ func main() {
 	admin := handler.NewAdmin(apiCfg)
 	user := handler.NewUser(apiCfg)
 	chirp := handler.NewChirp(apiCfg)
+	webhook := handler.NewWebhook(apiCfg)
 
 	mux.Handle("/app", http.StripPrefix("/app", apiCfg.MiddlewareMetricsInc(http.FileServer(http.Dir(".")))))
 	mux.Handle("/app/assets/", http.StripPrefix("/app/assets", apiCfg.MiddlewareMetricsInc(http.FileServer(http.Dir("./assets")))))
@@ -71,6 +72,9 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", chirp.GetAll)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", chirp.GetChirpById)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", chirp.Delete)
+
+	// webhooks
+	mux.HandleFunc("POST /api/polka/webhooks", webhook.CatchWebhook)
 
 	err = server.ListenAndServe()
 	if err != nil {
