@@ -127,6 +127,50 @@ func (c *Chirp) GetChirpById(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(responseBytes)
 }
 
+func (c *Chirp) Delete(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, c.ApiCfg.Secret)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	chirpId := r.PathValue("chirpID")
+	if chirpId == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		errDto := dto.Response{
+			Error: "chirp id cannot be empty",
+		}
+		errorResponse, _ := json.Marshal(errDto)
+		_, err = w.Write(errorResponse)
+		return
+	}
+
+	chirp, err := c.ApiCfg.Db.GetChirpById(r.Context(), uuid.MustParse(chirpId))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if userID != chirp.UserID {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	err = c.ApiCfg.Db.DeleteChirp(r.Context(), chirp.ID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func validateChirp(userID uuid.UUID, r *http.Request) (*dto.ChirpRequest, error) {
 	invalidWords := []string{"kerfuffle", "sharbert", "fornax"}
 	replacement := "****"

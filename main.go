@@ -70,6 +70,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", chirp.Create)
 	mux.HandleFunc("GET /api/chirps", chirp.GetAll)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", chirp.GetChirpById)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", chirp.Delete)
 
 	err = server.ListenAndServe()
 	if err != nil {
