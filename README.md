@@ -54,5 +54,16 @@ Same thing for `sqlc`, just install it with: `go install github.com/sqlc-dev/sql
 
 ## Usage
 
+You will need to create a `.env` file with the following variables:
+
+```dotenv
+DB_URL=postgres://postgres:postgres@localhost:5432/chirpy?sslmode=disable
+PLATFORM=dev
+SECRET=zC+Lder3Sj859yD1K6F1eYqo9dKRf+/0HtsmxRIX
+POLKA_KEY=f271c81ff7084ee5b99a5091b42d486e
+```
+
+You can update all the variables in `.env` to your needs/setup.
+
 For usage, refer to the Swagger documentation
 at [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
